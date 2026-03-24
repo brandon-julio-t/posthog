@@ -409,6 +409,22 @@ export function getURLPathToTargetArea(pathname: string): SupportTicketTargetAre
     return null
 }
 
+export type HogSupportReportCheck = {
+    id: string
+    label: string
+    status: 'ok' | 'warning' | 'info' | 'error' | 'skipped'
+    value: string | null
+    detail: string | null
+}
+
+function formatHogSupportReport(checks: HogSupportReportCheck[]): string {
+    if (checks.length === 0) {
+        return 'No results for Hog Support Report'
+    }
+    const lines = checks.map((c) => `  ${c.label}: ${c.value ?? 'n/a'}${c.detail ? ` (${c.detail})` : ''}`)
+    return `\n\nHog Support Report:\n${lines.join('\n')}`
+}
+
 export type SupportFormLogicProps = {
     onClose?: () => void
 }
@@ -454,6 +470,8 @@ export const supportLogic = kea<supportLogicType>([
         openEmailForm: true,
         closeEmailForm: true,
         setLastSubmittedTicketId: (ticketId: string | null) => ({ ticketId }),
+        loadHogSupportReport: true,
+        setHogSupportReport: (checks: HogSupportReportCheck[]) => ({ checks }),
     })),
     reducers(() => ({
         isSupportFormOpen: [
@@ -475,6 +493,13 @@ export const supportLogic = kea<supportLogicType>([
             {
                 setLastSubmittedTicketId: (_, { ticketId }) => ticketId,
                 openSupportForm: () => null, // Reset when opening a new form
+            },
+        ],
+        hogSupportReport: [
+            [] as HogSupportReportCheck[],
+            {
+                setHogSupportReport: (_, { checks }) => checks,
+                openSupportForm: () => [], // Reset when opening a new form
             },
         ],
     })),
@@ -576,6 +601,16 @@ export const supportLogic = kea<supportLogicType>([
             }
 
             actions.updateUrlParams()
+            actions.loadHogSupportReport()
+        },
+        loadHogSupportReport: async () => {
+            try {
+                const response = await api.get('/api/support/hog-report')
+                actions.setHogSupportReport(response.checks ?? [])
+            } catch {
+                // Diagnostics are non-blocking — silently ignore failures
+                actions.setHogSupportReport([])
+            }
         },
         submitZendeskTicket: async ({
             name,
@@ -719,7 +754,8 @@ export const supportLogic = kea<supportLogicType>([
                                   (teamLogic.values.currentTeam.modifiers?.personsOnEventsMode ??
                                       teamLogic.values.currentTeam.default_modifiers?.personsOnEventsMode ??
                                       'unknown')
-                                : ''),
+                                : '') +
+                            formatHogSupportReport(values.hogSupportReport),
                     },
                 },
             }
