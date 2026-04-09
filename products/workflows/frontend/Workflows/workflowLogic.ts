@@ -739,8 +739,7 @@ export const workflowLogic = kea<workflowLogicType>([
 
             const webhookUrl = publicWebhooksHostOrigin() + '/public/webhooks/' + values.workflow.id
 
-            const isScheduleTrigger = 'scheduled_at' in (values.workflow.trigger || {})
-            lemonToast.info(isScheduleTrigger ? 'Scheduling workflow...' : 'Triggering workflow...')
+            lemonToast.info('Triggering workflow...')
 
             try {
                 await fetch(webhookUrl, {
@@ -755,7 +754,7 @@ export const workflowLogic = kea<workflowLogicType>([
                     credentials: 'omit',
                 })
 
-                lemonToast.success(`Workflow ${isScheduleTrigger ? 'scheduled' : 'triggered'}`, {
+                lemonToast.success('Workflow triggered', {
                     button: {
                         label: 'View logs',
                         action: () => router.actions.push(urls.workflow(values.workflow.id!, 'logs')),
@@ -772,8 +771,7 @@ export const workflowLogic = kea<workflowLogicType>([
                 return
             }
 
-            const isScheduleTrigger = 'scheduled_at' in (values.workflow.trigger || {})
-            lemonToast.info(isScheduleTrigger ? 'Scheduling batch workflow...' : 'Triggering batch workflow...')
+            lemonToast.info(scheduledAt ? 'Scheduling batch workflow...' : 'Triggering batch workflow...')
 
             try {
                 await api.hogFlows.createHogFlowBatchJob(values.workflow.id, {

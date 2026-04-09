@@ -303,7 +303,6 @@ export function StepTriggerConfiguration({ node }: { node: Node<TriggerAction> }
             setWorkflowActionConfig(node.id, {
                 type: 'batch',
                 filters: { properties: [] },
-                scheduled_at: undefined,
             })
         } else if (value === 'tracking_pixel') {
             setWorkflowActionConfig(node.id, {
