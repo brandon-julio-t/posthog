@@ -635,9 +635,7 @@ def agentic_authorize_confirm(request: Request) -> Response:
 @stripe_region_proxy(strategy="token_lookup")
 def oauth_token(request: Request) -> Response:
     # Non-PKCE requests require HMAC. PKCE requests include code_verifier.
-    has_hmac = bool(request.META.get("HTTP_STRIPE_SIGNATURE"))
-    has_pkce = bool(request.data.get("code_verifier"))
-    if not has_hmac and not has_pkce:
+    if not request.META.get("HTTP_STRIPE_SIGNATURE") and not request.data.get("code_verifier"):
         return Response({"error": "invalid_request", "error_description": "Authentication required"}, status=401)
 
     grant_type = request.data.get("grant_type", "")
