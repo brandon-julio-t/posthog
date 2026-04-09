@@ -23,7 +23,7 @@ export function StepConditionalBranchConfiguration({
     const action = node.data
     const { conditions } = action.config
 
-    const { edgesByActionId, selectedNodeCanBeDeleted } = useValues(hogFlowEditorLogic)
+    const { edgesByActionId } = useValues(hogFlowEditorLogic)
     const { setWorkflowAction, setWorkflowActionEdges } = useActions(hogFlowEditorLogic)
 
     const nodeEdges = edgesByActionId[action.id] ?? []
@@ -31,9 +31,6 @@ export function StepConditionalBranchConfiguration({
     const setConditions = (
         conditions: Extract<HogFlowAction, { type: 'conditional_branch' }>['config']['conditions']
     ): void => {
-        // TODO: Find all related edges. We can only delete those that are the same as the continue edge.
-        // All others should be disabled for deletion until the subbranch is removed
-
         // For condition modifiers we need to setup the branches as well
         setWorkflowAction(action.id, {
             ...action,
@@ -43,23 +40,26 @@ export function StepConditionalBranchConfiguration({
 
     const { localNames: localConditionNames, handleNameChange } = useDebouncedNameInputs(conditions, setConditions)
 
-    const [branchEdges, nonBranchEdges] = useMemo(() => {
+    const [branchEdges, nonBranchEdges, continueEdge] = useMemo(() => {
         const branchEdges: HogFlow['edges'] = []
         const nonBranchEdges: HogFlow['edges'] = []
+        let continueEdge: HogFlow['edges'][0] | undefined
 
         nodeEdges?.forEach((edge) => {
             if (edge.type === 'branch' && edge.from === action.id) {
                 branchEdges.push(edge)
             } else {
+                if (edge.type === 'continue' && edge.from === action.id) {
+                    continueEdge = edge
+                }
                 nonBranchEdges.push(edge)
             }
         })
 
-        return [branchEdges.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)), nonBranchEdges]
+        return [branchEdges.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)), nonBranchEdges, continueEdge]
     }, [nodeEdges, action.id])
 
     const addCondition = (): void => {
-        const continueEdge = nodeEdges.find((edge) => edge.type === 'continue' && edge.from === action.id)
         if (!continueEdge) {
             throw new Error('Continue edge not found')
         }
@@ -97,7 +97,11 @@ export function StepConditionalBranchConfiguration({
                             size="xsmall"
                             icon={<IconX />}
                             onClick={() => removeCondition(index)}
-                            disabledReason={selectedNodeCanBeDeleted ? undefined : 'Clean up branching steps first'}
+                            disabledReason={
+                                branchEdges[index]?.to === continueEdge?.to
+                                    ? undefined
+                                    : 'Clean up branching steps first'
+                            }
                         />
                     </div>
 
